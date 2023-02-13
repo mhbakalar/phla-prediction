@@ -1,0 +1,8 @@
+# Ignore Mac system files
+.DS_store
+
+# Ignore logs folder
+logs
+
+# Ignore outputs folder
+output
