@@ -48,19 +48,36 @@ class PeptideHLATransformer(L.LightningModule):
         self.seq_length = peptide_length + allele_length
         self.n_amino_acids = 22
 
-        self.embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
+        self.pep_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
+        self.hla_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
 
-        ## Transformer model
+        ## Transformer encoder layer
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embedding_dim,
             nhead=transformer_heads,
             batch_first=True
         )
-        self.transformer_encoder = self.MaskedTransformerEncoder(
+
+        # HLA transformer and positional encoder
+        self.hla_transformer_encoder = nn.TransformerEncoder(
             encoder_layer,
             num_layers=transformer_layers
         )
-        self.positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=self.seq_length)
+        self.hla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=allele_length)
+
+        # Peptide transformer and positional encoder
+        self.pep_transformer_encoder = self.MaskedTransformerEncoder(
+            encoder_layer,
+            num_layers=transformer_layers
+        )
+        self.pep_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=peptide_length)
+
+        # PHLA transformer and positional encoder
+        self.phla_transformer_encoder = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=transformer_layers
+        )
+        self.phla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=self.seq_length)
 
         ## Projection model
         peptide_aa_dims = embedding_dim * self.seq_length
@@ -72,12 +89,33 @@ class PeptideHLATransformer(L.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()
 
     def network(self, x):
-        src_mask = torch.empty(x.shape, device=x.device).fill_(0)
-        src_mask = src_mask.masked_fill(x == 21, float('-inf'))
+        # Separate peptide and HLA from input x
+        x_hla = x[:,0:self.hparams.allele_length]
+        x_pep = x[:,self.hparams.allele_length:]
 
-        x = self.embedding(x)
-        x = self.positional_encoder(x)
-        x = self.transformer_encoder(x, src_mask)
+        # Build peptide mask
+        mask_shape = (x.shape[0], self.hparams.peptide_length)
+        pep_mask = torch.empty(mask_shape, device=x.device).fill_(0)
+        pep_mask = pep_mask.masked_fill(x_pep == 21, float('-inf'))
+
+        # Peptide transformer network0
+        x_pep = self.pep_embedding(x_pep)
+        x_pep = self.pep_positional_encoder(x_pep)
+        x_pep = self.pep_transformer_encoder(x_pep, pep_mask)
+
+        # Peptide transformer network
+        x_hla = self.hla_embedding(x_hla)
+        x_hla = self.hla_positional_encoder(x_hla)
+        x_hla = self.hla_transformer_encoder(x_hla)
+        
+        # Combine peptide and HLA representations
+        x = torch.cat((x_pep, x_hla), dim=1)
+
+        # Peptide transformer network
+        x = self.phla_positional_encoder(x)
+        x = self.phla_transformer_encoder(x)
+
+        # Linear projection network
         x = self.flatten(x)
         x = self.fc1(x)
         x = self.dropout(x)

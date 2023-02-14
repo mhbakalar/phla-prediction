@@ -73,7 +73,7 @@ class DriveTensorBoardLogger(TensorBoardLogger):
         dst = [destination_path / file.relative_to(source_path) for file in src]
 
         with concurrent.futures.ThreadPoolExecutor(4) as executor:
-            print("Upload...")
+            print("Uploading...")
             results = executor.map(_copy, src, dst)
 
         # Raise the first exception found

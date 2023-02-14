@@ -8,8 +8,9 @@ from lightning.app.storage import Drive
 
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-import models.datasets.phla as phla
+import models.datasets.phla_data
 import models.modules.transformer
+import models.modules.split_transformer
 
 import tbdrive
 
@@ -22,8 +23,9 @@ class PeptidePrediction(L.LightningWork):
     def run(self):
         save_dir = "logs"
         # Define parameters for sweep
-        transformer_heads = [16]
-        transformer_layers = [1]
+        embedding_dim = 128
+        transformer_heads = [32]
+        transformer_layers = [4]
 
         # Parameter sweepq
         for heads in transformer_heads:
@@ -42,7 +44,7 @@ class PeptidePrediction(L.LightningWork):
                 aa_order_file = 'data/amino_acid_ordering.txt'
                 allele_sequence_file = 'data/alleles_95_variable.txt'
 
-                data = models.datasets.phla.PeptideHLADataModule(
+                data = models.datasets.phla_data.PeptideHLADataModule(
                     hits_file=hits_file,
                     decoys_file=decoys_file,
                     aa_order_file=aa_order_file,
@@ -55,10 +57,11 @@ class PeptidePrediction(L.LightningWork):
                 data.prepare_data()
 
                 # Configure the model
-                model = models.modules.transformer.PeptideHLATransformer(
+                model = models.modules.split_transformer.PeptideHLATransformer(
                     peptide_length=12,
                     allele_length=60,
                     dropout_rate=0.3,
+                    embedding_dim=embedding_dim,
                     transformer_heads=heads,
                     transformer_layers=layers
                 )
@@ -71,9 +74,9 @@ class PeptidePrediction(L.LightningWork):
                 )
 
                 # Run training
-                checkpoint_callback = ModelCheckpoint(dirpath=logger.log_dir, save_top_k=2, monitor="val_loss")
+                checkpoint_callback = ModelCheckpoint(dirpath=logger.log_dir, every_n_epochs=2, monitor="val_loss")
                 trainer = L.Trainer(
-                    max_epochs=5,
+                    max_epochs=20,
                     logger=logger,
                     callbacks=[checkpoint_callback],
                     accelerator="gpu",
@@ -81,7 +84,10 @@ class PeptidePrediction(L.LightningWork):
                 trainer.fit(model, datamodule=data)
 
                 # Manually upload the log state to Drive
-                logger._upload_to_storage(logs_only=False)
+                try:
+                    logger._upload_to_storage(logs_only=False)
+                except Exception as e:
+                    print(e)
 
 
 drive = Drive("lit://hits_16", component_name="pmhc")

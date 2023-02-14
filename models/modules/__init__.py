@@ -1,1 +1,1 @@
-__all__ = ["transformer", "pan_linear"]
+__all__ = ["transformer", "split_transformer"]
