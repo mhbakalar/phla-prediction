@@ -1,9 +1,6 @@
-#%% Import
-import os
 import glob
 import torch
 import pandas as pd
-import tempfile
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -14,10 +11,8 @@ import lightning as L
 from torch import nn
 
 
-import models.datasets.phla
+import models.datasets.phla_data
 import models.modules.transformer
-
-#%% Test Cell
 
 def build_model(ckpt_path):
     # Create model to set parameters
@@ -41,7 +36,7 @@ decoys_file = None
 aa_order_file = 'data/amino_acid_ordering.txt'
 allele_sequence_file = 'data/alleles_95_variable.txt'
 
-data = models.datasets.phla.DataModule(
+data = models.datasets.phla_data.DataModule(
     hits_file=hits_file,
     decoys_file=decoys_file,
     aa_order_file=aa_order_file,
