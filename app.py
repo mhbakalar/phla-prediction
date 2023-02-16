@@ -1,16 +1,19 @@
 import os
 from pathlib import Path
+from pickle import dump
 
 import lightning as L
+import torch
 
 from lightning.app.components import LightningTrainerMultiNode
 from lightning.app.storage import Drive
 
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, Callback
 
 import models.datasets.phla_data
 import models.modules.transformer
 import models.modules.split_transformer
+
 
 import tbdrive
 
@@ -23,9 +26,9 @@ class PeptidePrediction(L.LightningWork):
     def run(self):
         save_dir = "logs"
         # Define parameters for sweep
-        embedding_dim = 128
-        transformer_heads = [32]
-        transformer_layers = [4]
+        embedding_dim = 256
+        transformer_heads = [16]
+        transformer_layers = [3]
 
         # Parameter sweepq
         for heads in transformer_heads:
@@ -39,7 +42,7 @@ class PeptidePrediction(L.LightningWork):
                     version = config+"/version_{0}".format(vid)
 
                 # Configure data
-                hits_file = 'data/hits_16.txt'
+                hits_file = 'data/hits_95.txt'
                 decoys_file = 'data/decoys.txt'
                 aa_order_file = 'data/amino_acid_ordering.txt'
                 allele_sequence_file = 'data/alleles_95_variable.txt'
@@ -50,9 +53,10 @@ class PeptidePrediction(L.LightningWork):
                     aa_order_file=aa_order_file,
                     allele_sequence_file=allele_sequence_file,
                     decoy_mul=1,
+                    decoy_pool_mul=10,
                     train_test_split=0.2,
                     batch_size=64,
-                    shuffle=True
+                    predict_mode=False
                 )
                 data.prepare_data()
 
@@ -73,13 +77,23 @@ class PeptidePrediction(L.LightningWork):
                     version=version
                 )
 
-                # Run training
-                checkpoint_callback = ModelCheckpoint(dirpath=logger.log_dir, every_n_epochs=2, monitor="val_loss")
+                # Setup trainer and run training
+                class MemoryTracker(Callback):
+                    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+                        snapshot = torch.cuda.memory_snapshot()
+                        with open(trainer.log_dir+'/snapshot.pickle', 'wb') as f:
+                            dump(snapshot, f)
+
+                checkpoint_callback = ModelCheckpoint(dirpath=logger.log_dir, save_top_k=2, monitor="val_auroc")
+                # memory_callback = MemoryTracker()
+
                 trainer = L.Trainer(
                     max_epochs=20,
                     logger=logger,
                     callbacks=[checkpoint_callback],
                     accelerator="gpu",
+                    reload_dataloaders_every_n_epochs=1,
+                    auto_scale_batch_size="power"
                 )
                 trainer.fit(model, datamodule=data)
 
@@ -90,12 +104,15 @@ class PeptidePrediction(L.LightningWork):
                     print(e)
 
 
-drive = Drive("lit://hits_16", component_name="pmhc")
+drive = Drive("lit://hits_95", component_name="pmhc")
 
 component = LightningTrainerMultiNode(
     PeptidePrediction,
     num_nodes=1,
-    cloud_compute=L.CloudCompute("gpu"),
+    cloud_compute=L.CloudCompute(
+        "gpu",
+        idle_timeout=5
+    ),
     tb_drive=drive
 )
 app = L.LightningApp(component)

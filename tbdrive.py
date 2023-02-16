@@ -56,7 +56,7 @@ class DriveTensorBoardLogger(TensorBoardLogger):
 
                 # Only copy log files if flagged
                 if logs_only:
-                    if "events.out.tfevents" in str(from_path):
+                    if ".ckpt" not in str(from_path):
                         fs.put(str(from_path), str(to_path), recursive=False)
                 else:
                     fs.put(str(from_path), str(to_path), recursive=False)
@@ -73,7 +73,6 @@ class DriveTensorBoardLogger(TensorBoardLogger):
         dst = [destination_path / file.relative_to(source_path) for file in src]
 
         with concurrent.futures.ThreadPoolExecutor(4) as executor:
-            print("Uploading...")
             results = executor.map(_copy, src, dst)
 
         # Raise the first exception found

@@ -19,9 +19,8 @@ class PeptideDataset(Dataset):
         self.inverse_aa_map = aa_ordering[0].to_dict()
         self.aa_map = {v: k for k, v in self.inverse_aa_map.items()}
 
-        # Add a character for C terminus
-        self.aa_map['x'] = 20
-        self.inverse_aa_map[20] = 'x'
+        # Add a character for C terminus (EOS)
+        c_term_char = self.inverse_aa_map[20]
 
         # Max length of peptides in the dataset
         self.padding_key = padding_key
@@ -34,8 +33,8 @@ class PeptideDataset(Dataset):
         decoys = pd.read_csv(decoys_file, sep=' ')['seq'].values
         self.decs_peptides = np.random.choice(decoys, self.hits_peptides.size*decoy_mul, replace=False)
 
-        self.hits_peptides = self.hits_peptides + 'x'
-        self.decs_peptides = self.decs_peptides + 'x'
+        self.hits_peptides = self.hits_peptides + c_term_char
+        self.decs_peptides = self.decs_peptides + c_term_char
 
         ## Assemble dataset composed of hits and decoys
         self.peptides = np.hstack([self.hits_peptides, self.decs_peptides])
