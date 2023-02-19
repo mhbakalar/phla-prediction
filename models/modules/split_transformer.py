@@ -123,11 +123,12 @@ class PeptideHLATransformer(L.LightningModule):
         x_pep = x[:,self.hparams.allele_length:]
 
         # Build BOS token
+        '''
         if self.bos_token is None or self.bos_token.size(0) != len(x):
             bos_shape = (len(x), 1)
             token = torch.empty(bos_shape, dtype=torch.int32, device=x.device).fill_(0)
             self.bos_token = token
-
+        '''
         '''
         # Build peptide mask
         if self.pep_mask is None or self.pep_mask.size(0) != len(x):
@@ -138,14 +139,15 @@ class PeptideHLATransformer(L.LightningModule):
         '''
 
         # BOS transformer
+        '''
         x_bos = self.bos_embedding(self.bos_token)
         x_bos = self.bos_positional_encoder(x_bos)
         x_bos = self.bos_transformer_encoder(x_bos)
+        '''
 
         # Peptide transformer network0
         x_pep = self.pep_embedding(x_pep)
         x_pep = self.pep_positional_encoder(x_pep)
-        #x_pep = self.pep_transformer_encoder(x_pep, self.src_mask)
         x_pep = self.pep_transformer_encoder(x_pep)
 
         # Peptide transformer network
@@ -154,7 +156,7 @@ class PeptideHLATransformer(L.LightningModule):
         x_hla = self.hla_transformer_encoder(x_hla)
         
         # Combine peptide and HLA representations
-        x = torch.cat((x_bos, x_pep, x_hla), dim=1)
+        x = torch.cat((x_pep, x_hla), dim=1)
 
         # Peptide transformer network
         x = self.phla_positional_encoder(x)
@@ -177,12 +179,14 @@ class PeptideHLATransformer(L.LightningModule):
         
         loss = self.criterion(logits, labels.unsqueeze(-1))
 
+        '''
         accuracy = self.accuracy(logits, labels.unsqueeze(-1))
         auroc = self.auroc(logits, labels.unsqueeze(-1))
 
         self.log("bce_loss", loss, on_epoch=True)
         self.log("accuracy", accuracy, on_epoch=True)
         self.log("auroc", auroc, on_epoch=True)
+        '''
 
         return loss
 

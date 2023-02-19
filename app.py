@@ -115,8 +115,7 @@ class PeptidePrediction(L.LightningWork):
                 max_epochs=10,
                 logger=logger,
                 callbacks=[checkpoint_callback, memory_callback],
-                accelerator="gpu",
-                reload_dataloaders_every_n_epochs=1
+                accelerator="gpu"
             )
             #trainer.tune(model, datamodule=data)
             trainer.fit(model, datamodule=data)
