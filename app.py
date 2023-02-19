@@ -32,8 +32,8 @@ class PeptidePrediction(L.LightningWork):
 
         # Define parameters for sweep
         parameter_dict = {'embedding_dim': [256],
-                          'heads': [16],
-                          'l0_layers': [1,3],
+                          'heads': [4,8,16],
+                          'l0_layers': [3],
                           'l1_layers': [3]
                           }
 
