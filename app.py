@@ -91,19 +91,21 @@ class PeptidePrediction(L.LightningWork):
             )
 
             class MemoryCallback(Callback):
-                def cpuStats():
-                    print(sys.version)
-                    print(psutil.cpu_percent())
-                    print(psutil.virtual_memory())  # physical memory usage
-                    pid = os.getpid()
-                    py = psutil.Process(pid)
-                    memory_use = py.memory_info()[0] / 2. ** 30  # memory use in GB...I think
-                    print('memory GB:', memory_use)
-
+                
                 def on_train_epoch_end(self, trainer, pl_module):
+                    def cpuStats():
+                        print(sys.version)
+                        print(psutil.cpu_percent())
+                        print(psutil.virtual_memory())  # physical memory usage
+                        pid = os.getpid()
+                        py = psutil.Process(pid)
+                        memory_use = py.memory_info()[0] / 2. ** 30  # memory use in GB...I think
+                        print('memory GB:', memory_use)
+
                     max_allocated = torch.cuda.max_memory_allocated()
                     if max_allocated != 0:
                         print('\nMemory usage: ', torch.cuda.memory_allocated() / max_allocated)
+                    cpuStats()
 
                     
 
