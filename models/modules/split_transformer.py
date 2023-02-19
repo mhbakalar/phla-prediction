@@ -55,13 +55,15 @@ class PeptideHLATransformer(L.LightningModule):
         self.learning_rate = learning_rate
 
         ## model parameters
-        self.seq_length = 1 + peptide_length + allele_length  # Add one for BOS
+        #self.seq_length = 1 + peptide_length + allele_length  # Add one for BOS
+        self.seq_length = peptide_length + allele_length  # Add one for BOS
         self.n_amino_acids = 23  # Update with len(aa_map) from DataModule
 
         self.bos_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
         self.pep_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
         self.hla_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
 
+        '''
         # BOS token
         self.bos_token = None
         self.bos_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=1)
@@ -74,6 +76,7 @@ class PeptideHLATransformer(L.LightningModule):
             ),
             num_layers=transformer_layers
         )
+        '''
         
         # Peptide transformer and positional encoder
         self.pep_transformer_encoder = nn.TransformerEncoder(
