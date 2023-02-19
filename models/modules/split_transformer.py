@@ -125,7 +125,7 @@ class PeptideHLATransformer(L.LightningModule):
         # Build BOS token
         if self.bos_token is None or self.bos_token.size(0) != len(x):
             bos_shape = (len(x), 1)
-            token = torch.empty(bos_shape, dtype=torch.int32, device=x.device).fill_(0)
+            token = torch.empty(bos_shape, dtype=torch.int32, device=x.device).fill_(1)
             self.bos_token = token
 
         '''
@@ -173,7 +173,6 @@ class PeptideHLATransformer(L.LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
         logits = self.network(inputs)
-        
         loss = self.criterion(logits, labels.unsqueeze(-1))
 
         '''

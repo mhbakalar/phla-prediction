@@ -33,8 +33,7 @@ class PeptidePrediction(L.LightningWork):
         # Define parameters for sweep
         parameter_dict = {'embedding_dim': [256],
                           'heads': [4,8,16],
-                          'l0_layers': [3],
-                          'l1_layers': [3]
+                          'layers': [3],
                           }
 
         # Parameter sweep
@@ -42,12 +41,11 @@ class PeptidePrediction(L.LightningWork):
             # Extract parameters
             embedding_dim = params['embedding_dim']
             heads = params['heads']
-            l0_layers = params['l0_layers']
-            l1_layers = params['l1_layers']
+            layers = params['layers']
 
             # Find latest version from Drive
             vid = 0
-            config = "heads_{0}_l0_{1}_l1_{2}".format(heads,l0_layers,l1_layers)
+            config = "heads_{0}_layers_{1}".format(heads,layers)
             version = config+"/version_{0}".format(vid)
             while save_dir+"/lightning_logs/"+version in self.drive.list(save_dir+"/lightning_logs/"+config):
                 vid += 1
@@ -79,8 +77,7 @@ class PeptidePrediction(L.LightningWork):
                 dropout_rate=0.3,
                 embedding_dim=embedding_dim,
                 transformer_heads=heads,
-                transformer_l0_layers=l0_layers,
-                transformer_l1_layers=l1_layers
+                transformer_layers=layers,
             )
 
             # Create a logger
