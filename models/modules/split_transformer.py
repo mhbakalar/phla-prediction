@@ -44,18 +44,14 @@ class PeptideHLATransformer(L.LightningModule):
                  dropout_rate: float=0.3, 
                  embedding_dim: int=32, 
                  transformer_heads: int=1, 
-                 transformer_l0_layers: int=1,
-                 transformer_l1_layers: int=1,
+                 transformer_layers: int=1,
                  learning_rate: float=1e-3):
-        
         super().__init__()
 
         ## Save hyperparameters to checkpoint
         self.save_hyperparameters()
 
-        # Save parameters to self
-        self.allele_length = allele_length
-        self.peptide_length = peptide_length
+        # Manually save learning rate parameter. Compatible with auto_lr. Check MHB.
         self.learning_rate = learning_rate
 
         ## model parameters
@@ -76,7 +72,7 @@ class PeptideHLATransformer(L.LightningModule):
                 dim_feedforward=2048,
                 batch_first=True
             ),
-            num_layers=transformer_l0_layers
+            num_layers=transformer_layers
         )
         
         # Peptide transformer and positional encoder
@@ -86,7 +82,7 @@ class PeptideHLATransformer(L.LightningModule):
                 nhead=transformer_heads,
                 batch_first=True
             ),
-            num_layers=transformer_l0_layers
+            num_layers=transformer_layers
         )
         self.pep_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=peptide_length)
         self.pep_mask = None
@@ -98,7 +94,7 @@ class PeptideHLATransformer(L.LightningModule):
                 nhead=transformer_heads,
                 batch_first=True
             ),
-            num_layers=transformer_l0_layers        
+            num_layers=transformer_layers        
         )
         self.hla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=allele_length)
 
@@ -109,7 +105,7 @@ class PeptideHLATransformer(L.LightningModule):
                 nhead=transformer_heads,
                 batch_first=True
             ),
-            num_layers=transformer_l1_layers
+            num_layers=transformer_layers
         )
         self.phla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=self.seq_length)
 
@@ -123,8 +119,8 @@ class PeptideHLATransformer(L.LightningModule):
 
     def network(self, x):
         # Separate peptide and HLA from input x
-        x_hla = x[:,0:self.allele_length]
-        x_pep = x[:,self.allele_length:]
+        x_hla = x[:,0:self.hparams.allele_length]
+        x_pep = x[:,self.hparams.allele_length:]
 
         # Build BOS token
         if self.bos_token is None or self.bos_token.size(0) != len(x):
@@ -149,6 +145,7 @@ class PeptideHLATransformer(L.LightningModule):
         # Peptide transformer network0
         x_pep = self.pep_embedding(x_pep)
         x_pep = self.pep_positional_encoder(x_pep)
+        #x_pep = self.pep_transformer_encoder(x_pep, self.src_mask)
         x_pep = self.pep_transformer_encoder(x_pep)
 
         # Peptide transformer network
