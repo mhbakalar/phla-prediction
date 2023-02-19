@@ -27,15 +27,20 @@ class DriveTensorBoardLogger(TensorBoardLogger):
         self.timestamp = None
         self.drive = drive
         self.refresh_time = refresh_time
+        self.ckpt_epoch = 0
 
     def log_metrics(self, metrics, step) -> None:
         super().log_metrics(metrics, step)
+
+        # Upload logging files
+        '''
         if self.timestamp is None:
-            self._upload_to_storage()
+            self._upload_to_storage(logs_only=True)
             self.timestamp = time()
         elif (time() - self.timestamp) > self.refresh_time:
-            self._upload_to_storage()
+            self._upload_to_storage(logs_only=True)
             self.timestamp = time()
+        '''
 
     def finalize(self, status: str) -> None:
         super().finalize(status)
@@ -56,14 +61,10 @@ class DriveTensorBoardLogger(TensorBoardLogger):
 
                 # Only copy log files if flagged
                 if logs_only:
-                    if ".ckpt" not in str(from_path):
+                    if "events.out.tfevents" in str(from_path):
                         fs.put(str(from_path), str(to_path), recursive=False)
                 else:
                     fs.put(str(from_path), str(to_path), recursive=False)
-
-                # Don't delete tensorboard logs.
-                #if "events.out.tfevents" not in str(from_path):
-                #    os.remove(str(from_path))
 
             except Exception as e:
                 # Return the exception so that it can be handled in the main thread

@@ -90,6 +90,7 @@ class PeptideHLADataModule(L.LightningDataModule):
         predict_mode: bool=False,
     ):
         super().__init__()
+
         self.hits_file = hits_file
         self.decoys_file = decoys_file
         self.aa_order_file = aa_order_file
@@ -146,8 +147,23 @@ class PeptideHLADataModule(L.LightningDataModule):
         return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=train_subsampler, drop_last=True)
 
     def val_dataloader(self):
+        # Extracts the binding labels for a subset of the training data
+        val_labels = self.peptide_dataset.binds[self.val_indices]
+
+        # Create a list of indices for the training samples that have a positive/negative binding label
+        binder_indices = val_labels.nonzero()[0]
+        decoy_indices = (val_labels == 0).nonzero()[0]
+
+        # Selects a subset of negative training samples to balance samples for training
+        subset_size = min(len(binder_indices)*self.decoy_mul, len(decoy_indices))
+        decoy_subset = np.random.choice(decoy_indices, subset_size, replace=False)
+        
+        # Contatenate training samples, and select indices from train_indices in original order
+        sample_indices = np.hstack((binder_indices, decoy_subset))
+        val_indices = np.array(self.val_indices)[np.in1d(self.val_indices, sample_indices)]
+
         # Build subsampler and return DataLoader
-        val_subsampler = torch_data.SubsetRandomSampler(self.val_indices)
+        val_subsampler = torch_data.SubsetRandomSampler(val_indices)
         return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=val_subsampler, drop_last=True)
 
     def test_dataloader(self):
