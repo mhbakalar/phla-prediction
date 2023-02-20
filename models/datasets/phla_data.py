@@ -127,6 +127,7 @@ class PeptideHLADataModule(L.LightningDataModule):
         self.val_indices = val_indices
 
     def train_dataloader(self):
+        '''
         # Extracts the binding labels for a subset of the training data
         train_labels = self.peptide_dataset.binds[self.train_indices]
 
@@ -144,9 +145,12 @@ class PeptideHLADataModule(L.LightningDataModule):
 
         # Build subsampler and return DataLoader
         train_subsampler = torch_data.SubsetRandomSampler(train_indices)
+        '''
+        train_subsampler = torch_data.SubsetRandomSampler(self.train_indices)
         return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=train_subsampler, drop_last=True)
 
     def val_dataloader(self):
+        '''
         # Extracts the binding labels for a subset of the training data
         val_labels = self.peptide_dataset.binds[self.val_indices]
 
@@ -164,6 +168,8 @@ class PeptideHLADataModule(L.LightningDataModule):
 
         # Build subsampler and return DataLoader
         val_subsampler = torch_data.SubsetRandomSampler(val_indices)
+        '''
+        val_subsampler = torch_data.SubsetRandomSampler(self.val_indices)
         return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=val_subsampler, drop_last=True)
 
     def test_dataloader(self):

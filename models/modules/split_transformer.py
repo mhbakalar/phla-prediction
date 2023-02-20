@@ -3,10 +3,20 @@ from torch import nn, Tensor
 import torch
 import torchmetrics
 import torch.nn as nn
+import torch.nn.functional as F
 import lightning as L
 import math
 
 class PeptideHLATransformer(L.LightningModule):
+
+    class TransformerClassifier(nn.Module):
+        def __init__(self, d_model):
+            super().__init__()
+            self.embedding_dim = d_model
+            self.attention_pool = nn.Linear(self.embedding_dim, 1)
+                
+        def forward(self, x):
+            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
 
     class PositionalEncoding(nn.Module):
 
@@ -45,7 +55,7 @@ class PeptideHLATransformer(L.LightningModule):
                  embedding_dim: int=32, 
                  transformer_heads: int=1, 
                  transformer_layers: int=1,
-                 learning_rate: float=1e-3):
+                 learning_rate: float=1e-4):
         super().__init__()
 
         ## Save hyperparameters to checkpoint
@@ -53,6 +63,7 @@ class PeptideHLATransformer(L.LightningModule):
 
         # Manually save learning rate parameter. Compatible with auto_lr. Check MHB.
         self.learning_rate = learning_rate
+        self.allele_length = allele_length
 
         ## model parameters
         self.seq_length = 1 + peptide_length + allele_length  # Add one for BOS
@@ -111,6 +122,7 @@ class PeptideHLATransformer(L.LightningModule):
 
         ## Projection model
         self.classifier = nn.Linear(embedding_dim, 1)
+        #self.classifier = self.TransformerClassifier(embedding_dim)
 
         ## Metrics and criterion
         self.criterion = nn.BCEWithLogitsLoss()
@@ -119,13 +131,13 @@ class PeptideHLATransformer(L.LightningModule):
 
     def network(self, x):
         # Separate peptide and HLA from input x
-        x_hla = x[:,0:self.hparams.allele_length]
-        x_pep = x[:,self.hparams.allele_length:]
+        x_hla = x[:,0:self.allele_length]
+        x_pep = x[:,self.allele_length:]
 
         # Build BOS token
         if self.bos_token is None or self.bos_token.size(0) != len(x):
             bos_shape = (len(x), 1)
-            token = torch.empty(bos_shape, dtype=torch.int32, device=x.device).fill_(1)
+            token = torch.empty(bos_shape, dtype=torch.int32, device=x.device).fill_(0)
             self.bos_token = token
 
         '''

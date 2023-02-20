@@ -33,14 +33,12 @@ class DriveTensorBoardLogger(TensorBoardLogger):
         super().log_metrics(metrics, step)
 
         # Upload logging files
-        '''
         if self.timestamp is None:
             self._upload_to_storage(logs_only=True)
             self.timestamp = time()
         elif (time() - self.timestamp) > self.refresh_time:
             self._upload_to_storage(logs_only=True)
             self.timestamp = time()
-        '''
 
     def finalize(self, status: str) -> None:
         super().finalize(status)
