@@ -11,7 +11,7 @@ class SaveOutput:
     def clear(self):
         self.outputs = []
 
-def patch_attention(model):
+def patch_attention(modules):
     attn_outputs = []
 
     def patch(m):
@@ -25,7 +25,7 @@ def patch_attention(model):
 
         m.forward = wrap
 
-    for module in model.transformer_encoder.modules():
+    for module in modules:
         if isinstance(module, nn.MultiheadAttention):
             save_output = SaveOutput()
             patch(module)

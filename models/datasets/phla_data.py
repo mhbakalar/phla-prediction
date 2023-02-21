@@ -126,51 +126,39 @@ class PeptideHLADataModule(L.LightningDataModule):
         self.train_indices = train_indices
         self.val_indices = val_indices
 
-    def train_dataloader(self):
-        '''
+    def rand_balance_data(self, indices):
         # Extracts the binding labels for a subset of the training data
-        train_labels = self.peptide_dataset.binds[self.train_indices]
+        labels = self.peptide_dataset.binds[indices]
 
         # Create a list of indices for the training samples that have a positive/negative binding label
-        binder_indices = train_labels.nonzero()[0]
-        decoy_indices = (train_labels == 0).nonzero()[0]
+        binder_indices = labels.nonzero()[0]
+        decoy_indices = (labels == 0).nonzero()[0]
 
         # Selects a subset of negative training samples to balance samples for training
         subset_size = min(len(binder_indices)*self.decoy_mul, len(decoy_indices))
         decoy_subset = np.random.choice(decoy_indices, subset_size, replace=False)
         
-        # Contatenate training samples, and select indices from train_indices in original order
-        sample_indices = np.hstack((binder_indices, decoy_subset))
-        train_indices = np.array(self.train_indices)[np.in1d(self.train_indices, sample_indices)]
+        # Contatenate binders and decoys and select indices in original order
+        balanced_indices = np.hstack((binder_indices, decoy_subset))
+        balanced_indices = np.array(indices)[np.in1d(indices, balanced_indices)]
 
-        # Build subsampler and return DataLoader
-        train_subsampler = torch_data.SubsetRandomSampler(train_indices)
-        '''
-        train_subsampler = torch_data.SubsetRandomSampler(self.train_indices)
+        return balanced_indices
+
+    def train_dataloader(self):
+        # Balance decoy data
+        balanced_train_indices = self.rand_balance_data(self.train_indices)
+
+        # Build subsampler and return data loader
+        train_subsampler = torch_data.SubsetRandomSampler(balanced_train_indices)
         return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=train_subsampler, drop_last=True)
 
     def val_dataloader(self):
-        '''
-        # Extracts the binding labels for a subset of the training data
-        val_labels = self.peptide_dataset.binds[self.val_indices]
+        # Balance decoy data
+        balanced_train_indices = self.rand_balance_data(self.val_indices)
 
-        # Create a list of indices for the training samples that have a positive/negative binding label
-        binder_indices = val_labels.nonzero()[0]
-        decoy_indices = (val_labels == 0).nonzero()[0]
-
-        # Selects a subset of negative training samples to balance samples for training
-        subset_size = min(len(binder_indices)*self.decoy_mul, len(decoy_indices))
-        decoy_subset = np.random.choice(decoy_indices, subset_size, replace=False)
-        
-        # Contatenate training samples, and select indices from train_indices in original order
-        sample_indices = np.hstack((binder_indices, decoy_subset))
-        val_indices = np.array(self.val_indices)[np.in1d(self.val_indices, sample_indices)]
-
-        # Build subsampler and return DataLoader
-        val_subsampler = torch_data.SubsetRandomSampler(val_indices)
-        '''
-        val_subsampler = torch_data.SubsetRandomSampler(self.val_indices)
-        return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=val_subsampler, drop_last=True)
+        # Build subsampler and return data loader
+        train_subsampler = torch_data.SubsetRandomSampler(balanced_train_indices)
+        return DataLoader(self.peptide_dataset, batch_size=self.batch_size, sampler=train_subsampler, drop_last=True)
 
     def test_dataloader(self):
         # Build subsampler and return DataLoader

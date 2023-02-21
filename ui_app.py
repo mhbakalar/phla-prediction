@@ -149,5 +149,5 @@ class RootFlow(L.LightningFlow):
         return [{"name": "home", "content": self.lit_gradio}]
 
 drive = Drive("lit://hits_95", component_name="pmhc")
-ckpt_path = glob.glob('logs/hits_95/lightning_logs/heads_4_layers_8/*.ckpt')[0]
+ckpt_path = glob.glob('logs/hits_95/lightning_logs/heads_8_layers_3/*.ckpt')[0]
 app = L.LightningApp(RootFlow(drive, ckpt_path))

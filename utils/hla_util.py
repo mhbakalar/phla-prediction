@@ -12,6 +12,28 @@ if __name__ == '__main__':
     aa_file = 'data/amino_acid_ordering.txt'
     hla_file = 'data/alleles_95_aligned.txt'
     hla_variable_output = 'data/alleles_95_variable.txt'
+    variable_sites_input = 'data/psuedo_sequence.txt'
+    variable_sites_output = 'data/variable_sites.txt'
+
+    aa_map = pd.read_csv(aa_file, header=None, names=['aa']).set_index('aa')
+    aa_map['index'] = np.arange(0,22)
+
+    vsites = pd.read_csv(variable_sites_input, header=None, names=['sites'])
+
+    hla_sequences = pd.read_csv(hla_file, header=None, names=['allele','sequence'])
+
+    hla_seq_table = hla_sequences['sequence'].apply(list).apply(pd.Series)
+    variable_sites = vsites['sites'].values - 1
+    hla_sequences['variable_sequence'] = hla_seq_table[variable_sites].apply(''.join, axis=1)
+
+    hla_sequences.loc[:,['allele','variable_sequence']].to_csv(hla_variable_output, index=False, header=None)
+    pd.DataFrame(variable_sites).to_csv(variable_sites_output, index=False, header=None)
+
+'''
+if __name__ == '__main__':
+    aa_file = 'data/amino_acid_ordering.txt'
+    hla_file = 'data/alleles_95_aligned.txt'
+    hla_variable_output = 'data/alleles_95_variable.txt'
     variable_sites_output = 'data/variable_sites.txt'
 
     aa_map = pd.read_csv(aa_file, header=None, names=['aa']).set_index('aa')
@@ -28,3 +50,4 @@ if __name__ == '__main__':
 
     hla_sequences.loc[:,['allele','variable_sequence']].to_csv(hla_variable_output, index=False, header=None)
     pd.DataFrame(variable_sites).to_csv(variable_sites_output, index=False, header=None)
+'''

@@ -14,25 +14,28 @@ import models.modules.split_transformer
 
 import tbdrive
 
-class ModelTrainer(L.LightningWork):
-    def __init__(self, *args, tb_drive, **kwargs):
+class PeptidePrediction(L.LightningWork):
+    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.drive = tb_drive
         self.cloud_build_config = L.BuildConfig()
+        self.embedding_dim = embedding_dim
+        self.heads = heads
+        self.layers = layers
 
-    def run(self, embedding_dim=128, heads=1, layers=1):
+    def run(self):
         save_dir = "logs"
 
         # Find latest version from Drive
         vid = 0
-        config = "heads_{0}_layers_{1}".format(heads,layers)
+        config = "heads_{0}_layers_{1}".format(self.heads,self.layers)
         version = config+"/version_{0}".format(vid)
         while save_dir+"/lightning_logs/"+version in self.drive.list(save_dir+"/lightning_logs/"+config):
             vid += 1
             version = config+"/version_{0}".format(vid)
 
         # Configure data
-        hits_file = 'data/hits_16.txt'
+        hits_file = 'data/hits_95.txt'
         decoys_file = 'data/decoys.txt'
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
@@ -45,7 +48,7 @@ class ModelTrainer(L.LightningWork):
             decoy_mul=1,
             decoy_pool_mul=1,
             train_test_split=0.2,
-            batch_size=32,
+            batch_size=64,
             predict_mode=False
         )
         data.prepare_data()
@@ -53,11 +56,11 @@ class ModelTrainer(L.LightningWork):
         # Configure the model
         model = models.modules.split_transformer.PeptideHLATransformer(
             peptide_length=12,
-            allele_length=60,
+            allele_length=34,
             dropout_rate=0.3,
-            embedding_dim=embedding_dim,
-            transformer_heads=heads,
-            transformer_layers=layers,
+            embedding_dim=self.embedding_dim,
+            transformer_heads=self.heads,
+            transformer_layers=self.layers,
             learning_rate=1e-4
         )
 
@@ -70,12 +73,12 @@ class ModelTrainer(L.LightningWork):
 
         checkpoint_callback = ModelCheckpoint(dirpath=logger.log_dir, save_top_k=2, monitor="val_loss")
         trainer = L.Trainer(
-            max_epochs=10,
+            max_epochs=15,
             logger=logger,
             callbacks=[checkpoint_callback],
+            reload_dataloaders_every_n_epochs=1,
             accelerator="gpu"
         )
-        #trainer.tune(model, datamodule=data)
         trainer.fit(model, datamodule=data)
 
         # Manually upload the log state to Drive
@@ -85,32 +88,15 @@ class ModelTrainer(L.LightningWork):
         except Exception as e:
             print(e)
 
-class Workflow(L.LightningFlow):
+config = {'embedding_dim': 200, 'heads': 25, 'layers': 1}
 
-    def __init__(self, tb_drive, config_dict) -> None:
-        super().__init__()
-        self.drive = tb_drive
-        self.config_dict = config_dict
-        self.train = ModelTrainer(
-            cloud_compute=L.CloudCompute('gpu'), 
-            tb_drive=self.drive
-        )
-
-    def run(self):
-        # Run ModelTrainer for each configuration
-        for config in ParameterGrid(self.config_dict):
-            print(config)
-            self.train.run(
-                embedding_dim=config['embedding_dim'],
-                heads=config['heads'],
-                layers=config['layers']
-            )
-
-config_dict = {'embedding_dim': [256], 'heads': [4,8], 'layers': [3]}
-
-app = L.LightningApp(
-    Workflow(
-        tb_drive=Drive("lit://hits_16", component_name="pmhc"),
-        config_dict = config_dict
-    )
+component = LightningTrainerMultiNode(
+    PeptidePrediction,
+    num_nodes=1,
+    cloud_compute=L.CloudCompute("gpu"),
+    tb_drive=Drive("lit://hits_95", component_name="pmhc"),
+    embedding_dim=config['embedding_dim'],
+    heads=config['heads'],
+    layers = config['layers']
 )
+app = L.LightningApp(component)
