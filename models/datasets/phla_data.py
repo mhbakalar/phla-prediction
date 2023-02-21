@@ -59,9 +59,10 @@ class PeptideHLADataModule(L.LightningDataModule):
 
         def _encode_peptides(self, peptides):
             self.encoded_peptides = []
+            cterm_index = len(self.aa_map.keys())
             for peptide in peptides:
                 aa_encoding = torch.as_tensor([self.aa_map[aa] for aa in peptide])
-                aa_encoding = F.pad(aa_encoding, pad=(0,self.max_length-aa_encoding.shape[0]), value=21)  # Update with len(aa_map)
+                aa_encoding = F.pad(aa_encoding, pad=(0,self.max_length-aa_encoding.shape[0]), value=cterm_index)  # Update with len(aa_map)
                 self.encoded_peptides.append(aa_encoding)
 
         def __len__(self):

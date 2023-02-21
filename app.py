@@ -15,24 +15,36 @@ import models.modules.split_transformer
 import tbdrive
 
 class PeptidePrediction(L.LightningWork):
-    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, **kwargs):
+    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, save_dir="logs", **kwargs):
         super().__init__(*args, **kwargs)
         self.drive = tb_drive
         self.cloud_build_config = L.BuildConfig()
         self.embedding_dim = embedding_dim
         self.heads = heads
         self.layers = layers
+        self.save_dir = save_dir
 
-    def run(self):
-        save_dir = "logs"
+        # Build configuration string
+        self.config = "heads_{0}_layers_{1}".format(self.heads,self.layers)
 
+    def _next_checkpoint_id(self):
         # Find latest version from Drive
         vid = 0
-        config = "heads_{0}_layers_{1}".format(self.heads,self.layers)
-        version = config+"/version_{0}".format(vid)
-        while save_dir+"/lightning_logs/"+version in self.drive.list(save_dir+"/lightning_logs/"+config):
+        version = self.config+"/version_{0}".format(vid)
+        while self.save_dir+"/lightning_logs/"+version in self.drive.list(self.save_dir+"/lightning_logs/"+config):
             vid += 1
-            version = config+"/version_{0}".format(vid)
+            version = self.config+"/version_{0}".format(vid)
+        
+        return vid
+
+    def run(self):
+        load_from_checkpoint = True
+
+        # Find latest version from Drive
+        vid = self._next_checkpoint_id()
+        if(load_from_checkpoint):
+            vid -= 1
+        version = self.config+"/version_{0}".format(vid)
 
         # Configure data
         hits_file = 'data/hits_95.txt'
@@ -67,7 +79,7 @@ class PeptidePrediction(L.LightningWork):
         # Create a logger
         logger = tbdrive.DriveTensorBoardLogger(
             drive=self.drive,
-            save_dir=save_dir,
+            save_dir=self.save_dir,
             version=version
         )
 

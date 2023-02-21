@@ -1,1 +1,1 @@
-__all__ = ["phla", "peptide_dataset"]
+__all__ = ["phla_data", "peptide_dataset"]

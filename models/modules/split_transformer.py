@@ -71,6 +71,7 @@ class PeptideHLATransformer(L.LightningModule):
 
         # Manually save learning rate parameter. Compatible with auto_lr. Check MHB.
         self.learning_rate = learning_rate
+        self.peptide_length = peptide_length
         self.allele_length = allele_length
 
         ## model parameters
@@ -81,7 +82,7 @@ class PeptideHLATransformer(L.LightningModule):
         self.hla_embedding = torch.nn.Embedding(self.n_amino_acids, embedding_dim)
         
         ## Peptide transformer and positional encoder
-        self.pep_transformer_encoder = nn.TransformerEncoder(
+        self.pep_transformer_encoder = self.MaskedTransformerEncoder(
             encoder_layer= nn.TransformerEncoderLayer(
                 d_model=embedding_dim,
                 nhead=transformer_heads,
@@ -104,7 +105,7 @@ class PeptideHLATransformer(L.LightningModule):
         self.hla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=allele_length)
 
         ## Peptide-HLA transformer and positional encoder
-        self.phla_transformer_encoder = nn.TransformerEncoder(
+        self.phla_transformer_encoder = self.MaskedTransformerEncoder(
             encoder_layer= nn.TransformerEncoderLayer(
                 d_model=embedding_dim,
                 nhead=transformer_heads,
@@ -113,6 +114,7 @@ class PeptideHLATransformer(L.LightningModule):
             num_layers=transformer_layers
         )
         self.phla_positional_encoder = self.PositionalEncoding(d_model=embedding_dim, max_len=self.seq_length)
+        self.phla_mask = None
 
         ## Projection model
         self.classifier = self.TransformerClassifier(embedding_dim)
@@ -135,31 +137,30 @@ class PeptideHLATransformer(L.LightningModule):
         x_hla = x[:,0:self.allele_length]
         x_pep = x[:,self.allele_length:]
 
-        '''
-        # Build peptide mask
-        if self.pep_mask is None or self.pep_mask.size(0) != len(x):
-            mask_shape = (len(x), self.hparams.peptide_length)
+        # Build phla and pep masks
+        if self.phla_mask is None or self.phla_mask.size(0) != len(x):
+            mask_shape = (len(x), self.seq_length)
             mask = torch.empty(mask_shape, device=x.device).fill_(0)
-            mask = mask.masked_fill(x_pep == 22, float('-inf'))  # Update with blank token from aa_map
-            self.src_mask = mask
-        '''
+            mask = mask.masked_fill(x == 21, float('-inf'))  # Update with blank token from aa_map
+            self.phla_mask = mask
+            self.pep_mask = mask[:, self.allele_length:]
 
-        # Peptide transformer network0
-        x_pep = self.pep_embedding(x_pep)
-        x_pep = self.pep_positional_encoder(x_pep)
-        x_pep = self.pep_transformer_encoder(x_pep)
-
-        # Peptide transformer network
+        # HLA transformer network
         x_hla = self.hla_embedding(x_hla)
         x_hla = self.hla_positional_encoder(x_hla)
         x_hla = self.hla_transformer_encoder(x_hla)
+
+        # Peptide transformer network
+        x_pep = self.pep_embedding(x_pep)
+        x_pep = self.pep_positional_encoder(x_pep)
+        x_pep = self.pep_transformer_encoder(x_pep, self.pep_mask)
         
         # Combine peptide and HLA representations
         x_cat = torch.cat((x_pep, x_hla), dim=1)
 
         # Peptide transformer network
         x_cat = self.phla_positional_encoder(x_cat)
-        x_cat = self.phla_transformer_encoder(x_cat)
+        x_cat = self.phla_transformer_encoder(x_cat, self.phla_mask)
 
         # Sequence pooling classifier
         x = self.classifier(x_cat)  
