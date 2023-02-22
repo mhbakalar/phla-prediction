@@ -178,17 +178,12 @@ class PeptideHLATransformer(L.LightningModule):
         inputs, labels = batch
         logits = self.network(inputs)
         loss = self.criterion(logits, labels.unsqueeze(-1))
-
-        self.log("bce_loss", loss)
-
-        '''
         accuracy = self.accuracy(logits, labels.unsqueeze(-1))
         auroc = self.auroc(logits, labels.unsqueeze(-1))
 
         self.log("bce_loss", loss, on_epoch=True)
         self.log("accuracy", accuracy, on_epoch=True)
         self.log("auroc", auroc, on_epoch=True)
-        '''
 
         return loss
 
@@ -196,6 +191,8 @@ class PeptideHLATransformer(L.LightningModule):
         inputs, labels = batch
         logits = self.network(inputs)
         loss = self.criterion(logits, labels.unsqueeze(-1))
+
+        print(labels)
         
         accuracy = self.accuracy(logits, labels.unsqueeze(-1))
         auroc = self.auroc(logits, labels.unsqueeze(-1))

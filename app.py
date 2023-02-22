@@ -15,7 +15,7 @@ import models.modules.split_transformer
 import tbdrive
 
 class PeptidePrediction(L.LightningWork):
-    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, save_dir="logs", **kwargs):
+    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, save_dir="logs", load_from_checkpoint=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.drive = tb_drive
         self.cloud_build_config = L.BuildConfig()
@@ -23,6 +23,7 @@ class PeptidePrediction(L.LightningWork):
         self.heads = heads
         self.layers = layers
         self.save_dir = save_dir
+        self.load_from_checkpoint = load_from_checkpoint
 
         # Build configuration string
         self.config = "heads_{0}_layers_{1}".format(self.heads,self.layers)
@@ -31,23 +32,22 @@ class PeptidePrediction(L.LightningWork):
         # Find latest version from Drive
         vid = 0
         version = self.config+"/version_{0}".format(vid)
-        while self.save_dir+"/lightning_logs/"+version in self.drive.list(self.save_dir+"/lightning_logs/"+config):
+        while self.save_dir+"/lightning_logs/"+version in self.drive.list(self.save_dir+"/lightning_logs/"+self.config):
             vid += 1
             version = self.config+"/version_{0}".format(vid)
         
         return vid
 
     def run(self):
-        load_from_checkpoint = True
-
         # Find latest version from Drive
         vid = self._next_checkpoint_id()
-        if(load_from_checkpoint):
+        if(self.load_from_checkpoint):
             vid -= 1
         version = self.config+"/version_{0}".format(vid)
+        print("Version: ", version)
 
         # Configure data
-        hits_file = 'data/hits_95.txt'
+        hits_file = 'data/hits_16.txt'
         decoys_file = 'data/decoys.txt'
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
@@ -106,7 +106,7 @@ component = LightningTrainerMultiNode(
     PeptidePrediction,
     num_nodes=1,
     cloud_compute=L.CloudCompute("gpu"),
-    tb_drive=Drive("lit://hits_95", component_name="pmhc"),
+    tb_drive=Drive("lit://hits_16", component_name="pmhc"),
     embedding_dim=config['embedding_dim'],
     heads=config['heads'],
     layers = config['layers']
