@@ -8,7 +8,7 @@ from lightning.app.storage import Drive
 
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-import models.datasets.phla_data as phla_data
+import models.datasets.phla as phla
 import models.modules.transformer
 import models.modules.split_transformer
 

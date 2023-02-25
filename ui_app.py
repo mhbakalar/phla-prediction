@@ -11,7 +11,7 @@ import lightning as L
 from lightning.app.components import ServeGradio
 from lightning.app.storage import Drive
 
-import models.datasets.phla_data as phla_data
+import models.datasets.phla as phla
 import models.phla_transformer as phla_transformer
 
 import gradio as gr
@@ -35,7 +35,7 @@ class LitGradio(ServeGradio):
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
 
-        data = phla_data.DataModule(
+        data = phla.DataModule(
             hits_file=hits_file,
             decoys_file=decoys_file,
             aa_order_file=aa_order_file,
@@ -92,7 +92,7 @@ class LitGradio(ServeGradio):
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
 
-        data = phla_data.DataModule(
+        data = phla.DataModule(
             hits_file=hits_file,
             decoys_file=decoys_file,
             aa_order_file=aa_order_file,
