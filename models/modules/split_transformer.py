@@ -7,9 +7,8 @@ import torch.nn.functional as F
 import lightning as L
 import math
 
-class PeptideHLATransformer(L.LightningModule):
+class Transformer(L.LightningModule):
 
-   
     class TransformerClassifier(nn.Module):
         """
         Sequence pooling source from:
@@ -191,8 +190,6 @@ class PeptideHLATransformer(L.LightningModule):
         inputs, labels = batch
         logits = self.network(inputs)
         loss = self.criterion(logits, labels.unsqueeze(-1))
-
-        print(labels)
         
         accuracy = self.accuracy(logits, labels.unsqueeze(-1))
         auroc = self.auroc(logits, labels.unsqueeze(-1))

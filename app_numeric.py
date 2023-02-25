@@ -13,15 +13,16 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, Callback
 
 import models
-
-import models.datasets.phla_data
-import models.modules.transformer
+import models.datasets
 import models.modules.split_transformer
+import models.modules.numeric_transformer
+
+import models.datasets.phla_numeric
 
 import tbdrive
 
 class PeptidePrediction(L.LightningWork):
-    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, save_dir="logs", load_from_checkpoint=False, **kwargs):
+    def __init__(self, *args, tb_drive, embedding_dim=128, heads=1, layers=1, save_dir="logs", load_from_checkpoint=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.drive = tb_drive
         self.cloud_build_config = L.BuildConfig()
@@ -29,7 +30,7 @@ class PeptidePrediction(L.LightningWork):
         self.heads = heads
         self.layers = layers
         self.save_dir = save_dir
-        self.load_from_checkpoint = load_from_checkpoint
+        self.load_from_checkpoint = True
 
         # Build configuration string
         self.config = "heads_{0}_layers_{1}".format(self.heads,self.layers)
@@ -56,22 +57,18 @@ class PeptidePrediction(L.LightningWork):
         vid = self._next_checkpoint_id()
         if(self.load_from_checkpoint):
             vid -= 1
-        version = self.config+"/version_{0}".format(vid)
+        version = self.config+"transfer/version_{0}".format(vid)
         print("Version: ", version)
 
         # Configure data
-        hits_file = 'data/hits_95.txt'
-        decoys_file = 'data/decoys.txt'
+        hits_file = 'data/tstab_data.txt'
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
 
-        data = models.datasets.phla_data.PeptideHLADataModule(
+        data = models.datasets.phla_numeric.DataModule(
             hits_file=hits_file,
-            decoys_file=decoys_file,
             aa_order_file=aa_order_file,
             allele_sequence_file=allele_sequence_file,
-            decoy_mul=1,
-            decoy_pool_mul=1,
             train_test_split=0.2,
             batch_size=64,
             predict_mode=False
@@ -79,30 +76,11 @@ class PeptidePrediction(L.LightningWork):
         data.prepare_data()
 
         # Configure the model
-        PeptideHLATransformer = models.modules.split_transformer.PeptideHLATransformer
-        model = None
-        if(self.load_from_checkpoint):
-            ckpt_path = ""
-            try:
-                ckpt_path = self._get_latest_checkpoint(version)
-                print("Loading checkpoint path: ", ckpt_path)
-                model = PeptideHLATransformer.load_from_checkpoint(ckpt_path)
-            except:
-                print("Could not load checkpoint from path: ", ckpt_path)
-                print("Incrementing version.")
-                vid += 1
-                version = self.config+"/version_{0}".format(vid)
+        ckpt_path = "logs/lightning_logs/heads_25_layers_1/version_2/epoch=0-step=501.ckpt"
+        model = models.modules.split_transformer.Transformer.load_from_checkpoint(ckpt_path)
         
-        if model == None:
-            model = PeptideHLATransformer(
-                peptide_length=12,
-                allele_length=34,
-                dropout_rate=0.3,
-                embedding_dim=self.embedding_dim,
-                transformer_heads=self.heads,
-                transformer_layers=self.layers,
-                learning_rate=1e-4
-            )
+        # Build the transfer learning model
+        transfer_model = models.modules.numeric_transformer.Transformer(model, embedding_dim=self.embedding_dim)
 
         # Create a logger
         logger = tbdrive.DriveTensorBoardLogger(
@@ -115,11 +93,11 @@ class PeptidePrediction(L.LightningWork):
         trainer = L.Trainer(
             max_epochs=5,
             logger=logger,
-            callbacks=[checkpoint_callback],
             reload_dataloaders_every_n_epochs=1,
+            callbacks=[checkpoint_callback],
             accelerator="gpu"
         )
-        trainer.fit(model, datamodule=data)
+        trainer.fit(transfer_model, datamodule=data)
 
         # Manually upload the log state to Drive
         try:
