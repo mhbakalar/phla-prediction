@@ -11,7 +11,7 @@ import lightning as L
 from torch import nn
 
 
-import models.datasets.phla
+import models.datasets.phla_binding
 import models.modules.transformer
 
 def build_model(ckpt_path):
@@ -36,7 +36,7 @@ decoys_file = None
 aa_order_file = 'data/amino_acid_ordering.txt'
 allele_sequence_file = 'data/alleles_95_variable.txt'
 
-data = models.datasets.phla.DataModule(
+data = models.datasets.phla_binding.DataModule(
     hits_file=hits_file,
     decoys_file=decoys_file,
     aa_order_file=aa_order_file,
