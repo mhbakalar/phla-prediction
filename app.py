@@ -14,9 +14,10 @@ from lightning.pytorch.callbacks import ModelCheckpoint, Callback
 
 import models
 
-import models.datasets.phla_data
+import models.datasets.phla_binding
 import models.modules.transformer
-import models.modules.split_transformer
+
+from models.modules.split_transformer import Transformer
 
 import tbdrive
 
@@ -65,7 +66,7 @@ class PeptidePrediction(L.LightningWork):
         aa_order_file = 'data/amino_acid_ordering.txt'
         allele_sequence_file = 'data/alleles_95_variable.txt'
 
-        data = models.datasets.phla_data.PeptideHLADataModule(
+        datamodule = models.datasets.phla_binding.DataModule(
             hits_file=hits_file,
             decoys_file=decoys_file,
             aa_order_file=aa_order_file,
@@ -76,17 +77,16 @@ class PeptidePrediction(L.LightningWork):
             batch_size=64,
             predict_mode=False
         )
-        data.prepare_data()
+        datamodule.prepare_data()
 
         # Configure the model
-        PeptideHLATransformer = models.modules.split_transformer.PeptideHLATransformer
         model = None
         if(self.load_from_checkpoint):
             ckpt_path = ""
             try:
                 ckpt_path = self._get_latest_checkpoint(version)
                 print("Loading checkpoint path: ", ckpt_path)
-                model = PeptideHLATransformer.load_from_checkpoint(ckpt_path)
+                model = Transformer.load_from_checkpoint(ckpt_path)
             except:
                 print("Could not load checkpoint from path: ", ckpt_path)
                 print("Incrementing version.")
@@ -94,7 +94,7 @@ class PeptidePrediction(L.LightningWork):
                 version = self.config+"/version_{0}".format(vid)
         
         if model == None:
-            model = PeptideHLATransformer(
+            model = Transformer(
                 peptide_length=12,
                 allele_length=34,
                 dropout_rate=0.3,
@@ -119,7 +119,7 @@ class PeptidePrediction(L.LightningWork):
             reload_dataloaders_every_n_epochs=1,
             accelerator="gpu"
         )
-        trainer.fit(model, datamodule=data)
+        trainer.fit(model, datamodule=datamodule)
 
         # Manually upload the log state to Drive
         try:
