@@ -176,11 +176,12 @@ class Transformer(L.LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
         logits = self.network(inputs)
+
         loss = self.criterion(logits, labels.unsqueeze(-1))
         #accuracy = self.accuracy(logits, labels.unsqueeze(-1))
         #auroc = self.auroc(logits, labels.unsqueeze(-1))
 
-        self.log("bce_loss", loss, on_epoch=True)
+        #self.log("bce_loss", loss, on_epoch=True)
         #self.log("accuracy", accuracy, on_epoch=True)
         #self.log("auroc", auroc, on_epoch=True)
 
