@@ -72,6 +72,7 @@ class Transformer(L.LightningModule):
         self.learning_rate = learning_rate
         self.peptide_length = peptide_length
         self.allele_length = allele_length
+        self.embedding_dim = embedding_dim
 
         ## model parameters
         self.seq_length = peptide_length + allele_length  # Add one for BOS

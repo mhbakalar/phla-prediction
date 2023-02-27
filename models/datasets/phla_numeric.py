@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from .phla_numeric_data import NumericDataset
         
-class DataModule(L.LightningDataModule):
+class NumericDataModule(L.LightningDataModule):
 
     def __init__(
         self,
@@ -19,6 +19,7 @@ class DataModule(L.LightningDataModule):
         train_test_split: float,
         batch_size: int,
         predict_mode: bool=False,
+        normalize: bool=False
     ):
         super().__init__()
 
@@ -28,6 +29,7 @@ class DataModule(L.LightningDataModule):
         self.train_test_split = train_test_split
         self.batch_size = batch_size
         self.predict_mode = predict_mode
+        self.normalize = normalize
 
     def prepare_data(self):
         # Set up peptide dataset
@@ -35,7 +37,7 @@ class DataModule(L.LightningDataModule):
             hits_file=self.hits_file,
             aa_order_file=self.aa_order_file,
             allele_sequence_file=self.allele_sequence_file,
-            max_peptide_length=12)
+            max_peptide_length=12, normalize=self.normalize)
 
     def setup(self, stage: str):
         # Assign train/val datasets for use in dataloaders

@@ -9,9 +9,14 @@ from torch.utils.data import Dataset
 
 class NumericDataset(Dataset):
 
-    def __init__(self, hits_file, aa_order_file,
-        allele_sequence_file, max_peptide_length=12,
-        cterm_marker='.'
+    def __init__(
+        self, 
+        hits_file: str, 
+        aa_order_file: str,
+        allele_sequence_file: str, 
+        max_peptide_length: int=12,
+        cterm_marker: str='.', 
+        normalize=False
     ):
         ## AA order for encoding defined in file
         aa_ordering = pd.read_csv(aa_order_file, header=None)
@@ -38,7 +43,10 @@ class NumericDataset(Dataset):
         ## Assemble dataset composed of hits only
         self.peptides = self.hits_hla_peptides
         self.values = torch.tensor(hits['val'], dtype=torch.float32)
-        #self.values = torch.ones(len(self.hits_hla_peptides))
+
+        if normalize:
+            mean, std, var = torch.mean(self.values), torch.std(self.values), torch.var(self.values)
+            self.values = (self.values-mean)/std
 
         ## Precompute encoding for peptides
         self._encode_peptides(self.peptides)

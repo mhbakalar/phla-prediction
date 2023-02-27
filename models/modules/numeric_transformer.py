@@ -28,7 +28,7 @@ class Transformer(L.LightningModule):
         
     def __init__(self, transformer: Transformer, embedding_dim):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['transformer'])
         self.transformer = transformer
 
         # Patch transformer
