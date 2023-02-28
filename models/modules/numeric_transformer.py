@@ -45,10 +45,13 @@ class NumericTransformer(L.LightningModule):
     def load_base_transformer(self, model: SplitTransformer):
         # Patch transformer
         self.transformer = model
-        self.transformer.freeze()
 
         # Replace classifier
         self.transformer.classifier = self.SequencePooler(d_model=model.embedding_dim, proj_dim=1024)
+
+    def freeze_base_transformer(self):
+        self.transformer.freeze()
+        self.transformer.classifier.unfreeze()
 
     def network(self, x):
         x = self.transformer(x)
