@@ -49,10 +49,6 @@ class NumericTransformer(L.LightningModule):
         # Replace classifier
         self.transformer.classifier = self.SequencePooler(d_model=model.embedding_dim, proj_dim=1024)
 
-    def freeze_base_transformer(self):
-        self.transformer.freeze()
-        self.transformer.classifier.unfreeze()
-
     def network(self, x):
         x = self.transformer(x)
         x = self.projection(x)
