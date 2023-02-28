@@ -10,7 +10,7 @@ from .split_transformer import SplitTransformer
 
 class NumericTransformer(L.LightningModule):
 
-    class SequencePooler(nn.Module):
+    class SequencePooler(L.LightningModule):
         """
         Sequence pooling source from:
         https://github.com/SHI-Labs/Compact-Transformers
