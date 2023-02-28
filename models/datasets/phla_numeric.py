@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from .phla_numeric_data import NumericDataset
         
-class NumericDataModule(L.LightningDataModule):
+class DataModule(L.LightningDataModule):
 
     def __init__(
         self,

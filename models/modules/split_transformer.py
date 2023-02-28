@@ -7,9 +7,9 @@ import torch.nn.functional as F
 import lightning as L
 import math
 
-class Transformer(L.LightningModule):
+class SplitTransformer(L.LightningModule):
 
-    class TransformerClassifier(nn.Module):
+    class SequencePooler(nn.Module):
         """
         Sequence pooling source from:
         https://github.com/SHI-Labs/Compact-Transformers
@@ -117,7 +117,7 @@ class Transformer(L.LightningModule):
         self.phla_mask = None
 
         ## Projection model
-        self.classifier = self.TransformerClassifier(embedding_dim)
+        self.classifier = self.SequencePooler(embedding_dim)
 
         ## Metrics and criterion
         self.criterion = nn.BCEWithLogitsLoss()

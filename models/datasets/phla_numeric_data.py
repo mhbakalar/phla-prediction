@@ -45,8 +45,7 @@ class NumericDataset(Dataset):
         self.values = torch.tensor(hits['val'], dtype=torch.float32)
 
         if normalize:
-            mean, std, var = torch.mean(self.values), torch.std(self.values), torch.var(self.values)
-            self.values = (self.values-mean)/std
+            self.values = (self.values - torch.min(self.values)) / (torch.max(self.values) - torch.min(self.values))
 
         ## Precompute encoding for peptides
         self._encode_peptides(self.peptides)

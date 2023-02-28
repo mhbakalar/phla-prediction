@@ -14,7 +14,7 @@ import models
 import models.datasets.phla_binding
 import models.modules.transformer
 
-from models.modules.split_transformer import Transformer
+from models.modules.split_transformer import SplitTransformer
 
 import tbdrive
 
@@ -83,7 +83,7 @@ class PeptidePrediction(L.LightningWork):
             try:
                 ckpt_path = self._get_latest_checkpoint(version)
                 print("Loading checkpoint path: ", ckpt_path)
-                model = Transformer.load_from_checkpoint(ckpt_path)
+                model = SplitTransformer.load_from_checkpoint(ckpt_path)
             except:
                 print("Could not load checkpoint from path: ", ckpt_path)
                 print("Incrementing version.")
@@ -91,7 +91,7 @@ class PeptidePrediction(L.LightningWork):
                 version = self.config+"/version_{0}".format(vid)
         
         if model == None:
-            model = Transformer(
+            model = SplitTransformer(
                 peptide_length=12,
                 allele_length=34,
                 dropout_rate=0.3,

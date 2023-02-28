@@ -48,11 +48,11 @@ class PeptidePrediction(L.LightningWork):
         # Configure the model
         ckpt_path = "logs/lightning_logs/heads_8_layers_3/version_0/epoch=13-step=59920.ckpt"
         version = "heads_8_layers_3/numeric"
-        model = models.modules.split_transformer.Transformer.load_from_checkpoint(ckpt_path)
-        model.embedding_dim = 200
+        model = models.modules.split_transformer.SplitTransformer.load_from_checkpoint(ckpt_path)
         
         # Build the transfer learning model
-        transfer_model = models.modules.numeric_transformer.Transformer(model, embedding_dim=model.embedding_dim)
+        transfer_model = models.modules.numeric_transformer.NumericTransformer()
+        transfer_model.load_base_transformer(model)
 
         # Create a logger
         logger = tbdrive.DriveTensorBoardLogger(

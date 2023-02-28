@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import lightning as L
 
-from .split_transformer import Transformer
+from .split_transformer import SplitTransformer
 
-class Transformer(L.LightningModule):
+class NumericTransformer(L.LightningModule):
 
     class SequencePooler(nn.Module):
         """
@@ -25,14 +25,12 @@ class Transformer(L.LightningModule):
             x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
             x = self.projection(x)
             return x
-        
-    def __init__(self, transformer: Transformer, embedding_dim):
+    
+    def __init__(self, learning_rate=1e-4):
         super().__init__()
-        self.save_hyperparameters(ignore=['transformer'])
-        self.transformer = transformer
-
-        # Patch transformer
-        self.transformer.classifier = self.SequencePooler(d_model=embedding_dim, proj_dim=1024)
+        self.save_hyperparameters()
+        self.transformer = None
+        self.learning_rate = learning_rate
 
         # Linear network to transform results to numeric value
         self.projection = nn.Sequential(
@@ -44,13 +42,13 @@ class Transformer(L.LightningModule):
         ## Metrics and criterion
         self.criterion = nn.MSELoss()
 
-    @property
-    def transformers(self):
-        return {
-            'pep_transformer_encoder': self.transformer.pep_transformer_encoder, 
-            'hla_transformer_encoder': self.transformer.hla_transformer_encoder, 
-            'phla_transformer_encoder': self.transformer.phla_transformer_encoder
-        }
+    def load_base_transformer(self, model: SplitTransformer):
+        # Patch transformer
+        self.transformer = model
+        self.transformer.freeze()
+
+        # Replace classifier
+        self.transformer.classifier = self.SequencePooler(d_model=model.embedding_dim, proj_dim=1024)
 
     def network(self, x):
         x = self.transformer(x)
@@ -62,7 +60,7 @@ class Transformer(L.LightningModule):
         return y
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.transformer.learning_rate)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
     def training_step(self, batch, batch_idx):
@@ -85,5 +83,5 @@ class Transformer(L.LightningModule):
     # Predict needs work
     def predict_step(self, batch, batch_idx):
         inputs, labels = batch
-        outputs = self(torch.flatten(inputs, 1))
+        outputs = self.network(inputs)
         return inputs, labels.unsqueeze(-1), outputs
