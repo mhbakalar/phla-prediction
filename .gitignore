@@ -3,6 +3,7 @@
 
 # Ignore logs folder
 logs
+analysis/lightning_logs
 
 # Ignore outputs folder
 output

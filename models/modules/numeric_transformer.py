@@ -42,10 +42,13 @@ class NumericTransformer(L.LightningModule):
         ## Metrics and criterion
         self.criterion = nn.MSELoss()
 
-    def load_base_transformer(self, model: SplitTransformer):
+    def load_base_transformer(self, model: SplitTransformer, freeze=False):
         # Patch transformer
         self.transformer = model
-
+        if freeze:
+            for module in self.transformer.modules():
+                module.freeze()
+                
         # Replace classifier
         self.transformer.classifier = self.SequencePooler(d_model=model.embedding_dim, proj_dim=1024)
 
