@@ -47,8 +47,9 @@ class NumericTransformer(L.LightningModule):
         self.transformer = model
         if freeze:
             for module in self.transformer.modules():
-                module.freeze()
-                
+                if hasattr(module, 'freeze'):
+                    module.freeze()
+
         # Replace classifier
         self.transformer.classifier = self.SequencePooler(d_model=model.embedding_dim, proj_dim=1024)
 
