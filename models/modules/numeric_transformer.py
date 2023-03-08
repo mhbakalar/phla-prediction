@@ -70,7 +70,8 @@ class NumericTransformer(L.LightningModule):
         inputs, values = batch
         logits = self.network(inputs)
         loss = self.criterion(logits, values.unsqueeze(-1))
-        self.log("bce_loss", loss, on_epoch=True)
+        
+        self.log("mse_loss", loss.detach(), on_epoch=True)
 
         return loss
 
