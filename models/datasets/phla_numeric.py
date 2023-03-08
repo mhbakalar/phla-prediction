@@ -24,7 +24,7 @@ class DataModule(L.LightningDataModule):
         normalize: bool=False,
         k: int = 1,  # fold number
         split_seed: int = 12345,  # split needs to be always the same for correct cross validation
-        num_splits: int = 10,
+        num_splits: int = 5,
     ):
         super().__init__()
 
