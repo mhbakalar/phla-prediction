@@ -43,17 +43,11 @@ class DataModule(L.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         dataset_size = len(self.peptide_dataset)
         indices = list(range(dataset_size))
-        split = int(np.floor((1/self.num_splits) * dataset_size))
-
-        # K-fold selection
-        # choose fold to train on
-        kf = KFold(n_splits=self.num_splits, shuffle=True, random_state=self.split_seed)
-        all_splits = [k for k in kf.split(indices)]
+        split = int(np.floor(self.train_test_split * dataset_size))
             
         if self.predict_mode:
             train_indices, val_indices = ([], indices)
         else:
-            #train_indices, val_indices = all_splits[self.k]
             np.random.shuffle(indices)
             train_indices, val_indices = indices[split:], indices[:split]
 
