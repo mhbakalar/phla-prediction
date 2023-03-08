@@ -59,9 +59,9 @@ class DataModule(L.LightningDataModule):
         if self.predict_mode:
             train_indices, val_indices = ([], indices)
         else:
-            #np.random.shuffle(indices)
-            #train_indices, val_indices = indices[split:], indices[:split]
-            train_indices, val_indices = all_splits[self.k]
+            np.random.shuffle(indices)
+            train_indices, val_indices = indices[split:], indices[:split]
+            #train_indices, val_indices = all_splits[self.k]
 
         self.train_indices = train_indices
         self.val_indices = val_indices

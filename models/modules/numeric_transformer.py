@@ -31,7 +31,7 @@ class NumericTransformer(L.LightningModule):
         self.save_hyperparameters()
         self.transformer = None
         self.learning_rate = learning_rate
-
+        
         # Linear network to transform results to numeric value
         self.projection = nn.Sequential(
             nn.Linear(1024, 1024),
