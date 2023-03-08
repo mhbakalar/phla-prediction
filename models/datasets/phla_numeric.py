@@ -22,7 +22,7 @@ class DataModule(L.LightningDataModule):
         batch_size: int,
         predict_mode: bool=False,
         normalize: bool=False,
-        k: int = 1,  # fold number
+        k: int = 1,  # fold numbers
         split_seed: int = 12345,  # split needs to be always the same for correct cross validation
         num_splits: int = 5,
     ):
