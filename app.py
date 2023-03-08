@@ -114,7 +114,7 @@ class PeptidePrediction(L.LightningWork):
             logger=logger,
             callbacks=[checkpoint_callback],
             reload_dataloaders_every_n_epochs=1,
-            accelerator="gpu"He
+            accelerator="gpu"
         )
         trainer.fit(model, datamodule=datamodule)
 
