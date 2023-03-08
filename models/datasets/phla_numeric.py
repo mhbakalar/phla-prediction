@@ -18,7 +18,6 @@ class DataModule(L.LightningDataModule):
         hits_file: str,
         aa_order_file: str,
         allele_sequence_file: str,
-        train_test_split: float,
         batch_size: int,
         predict_mode: bool=False,
         normalize: bool=False,
@@ -31,7 +30,6 @@ class DataModule(L.LightningDataModule):
         self.hits_file = hits_file
         self.aa_order_file = aa_order_file
         self.allele_sequence_file = allele_sequence_file
-        self.train_test_split = train_test_split
         self.batch_size = batch_size
         self.predict_mode = predict_mode
         self.normalize = normalize
@@ -51,6 +49,7 @@ class DataModule(L.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         dataset_size = len(self.peptide_dataset)
         indices = list(range(dataset_size))
+        split = int(np.floor((1/self.num_splits) * dataset_size))
 
         # K-fold selection
         # choose fold to train on
@@ -60,7 +59,9 @@ class DataModule(L.LightningDataModule):
         if self.predict_mode:
             train_indices, val_indices = ([], indices)
         else:
-            train_indices, val_indices = all_splits[self.k]
+            #train_indices, val_indices = all_splits[self.k]
+            np.random.shuffle(indices)
+            train_indices, val_indices = indices[split:], indices[:split]
 
         self.train_indices = train_indices
         self.val_indices = val_indices
