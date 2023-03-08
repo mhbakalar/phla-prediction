@@ -53,7 +53,7 @@ class DataModule(L.LightningDataModule):
         split = int(np.floor(self.train_test_split * dataset_size))
 
         # KFold splits
-        kf = KFold(n_splits=self.hparams.num_splits, shuffle=True, random_state=self.hparams.split_seed)
+        kf = KFold(n_splits=self.num_splits, shuffle=True, random_state=self.split_seed)
         all_splits = [k for k in kf.split(indices)]
             
         if self.predict_mode:
